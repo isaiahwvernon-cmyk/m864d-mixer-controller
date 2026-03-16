@@ -1,0 +1,308 @@
+================================================================================
+  M-864D MIXER CONTROLLER — USER SETUP & OPERATION GUIDE
+================================================================================
+
+This guide walks you through everything from installing the software on your
+PC to controlling the mixer from a tablet across the room.
+
+
+================================================================================
+PART 1 — PREREQUISITES (one-time setup on the host PC)
+================================================================================
+
+WHAT YOU NEED
+-------------
+  - A Windows, Mac, or Linux PC/laptop that stays on while you use the mixer
+  - The M-864D connected to your local network via Ethernet (see mixer manual)
+  - Node.js installed on the PC (free download, instructions below)
+  - The M-864D Mixer Controller app files (this folder)
+
+
+STEP 1 — INSTALL NODE.JS
+--------------------------
+Node.js is the engine that runs the mixer controller server on your PC.
+You only need to install it once.
+
+  1. Open a browser and go to:  https://nodejs.org
+  2. Click the button labelled "LTS" (Long Term Support) — this is the
+     recommended version for most users.
+  3. Run the downloaded installer. Accept all defaults and click Next/Install
+     through every screen. No custom settings are needed.
+  4. When installation finishes, click Finish.
+
+  To verify it installed correctly:
+    - On Windows: open the Start menu, type "cmd", press Enter.
+      In the black window, type:  node --version
+      You should see something like:  v20.11.0
+    - If you see a version number, Node.js is installed. You are done.
+
+
+STEP 2 — CONNECT YOUR MIXER TO THE NETWORK
+-------------------------------------------
+  1. Plug an Ethernet cable from the M-864D's LAN port into your router or
+     network switch.
+  2. Make sure the PC running this software is on the same network
+     (Wi-Fi or wired — both work).
+  3. Set the M-864D's Remote/Local switch on the front panel to REMOTE.
+     The TCP control interface only works in Remote mode.
+  4. Note the mixer's IP address. The factory default is 192.168.14.1.
+     Check your mixer's network settings menu if you have changed it.
+
+
+================================================================================
+PART 2 — STARTING THE APP (every time you use it)
+================================================================================
+
+WINDOWS USERS — DOUBLE-CLICK TO START
+---------------------------------------
+  1. Open the M-864D Mixer Controller folder.
+  2. Double-click  start.bat
+  3. A black terminal window will appear — this is the server running.
+     DO NOT close this window while you are using the mixer.
+  4. Two browser tabs will open automatically:
+       Tab 1 — The mixer control interface (faders, matrix, presets)
+       Tab 2 — A QR code page for connecting tablets and phones
+
+  The app will automatically try to connect to the mixer. If you see
+  "CONNECTED" in the top bar, you are ready to go.
+
+  If it shows "DISCONNECTED" or keeps trying to connect:
+    - Check that the mixer is powered on and the network cable is plugged in
+    - Check that the front panel switch is set to REMOTE
+    - Click the gear icon (top right) and verify the IP address is correct
+    - The default is 192.168.14.1 — change it if your mixer uses a different IP
+
+
+MAC / LINUX USERS — TERMINAL LAUNCH
+-------------------------------------
+  1. Open Terminal.
+  2. Type:  cd  then drag the M-864D Mixer Controller folder into the terminal
+     window (this fills in the path automatically). Press Enter.
+  3. Type:  bash start.sh   and press Enter.
+  4. The server starts and your default browser opens with the mixer interface.
+
+
+================================================================================
+PART 3 — CONNECTING TABLETS AND PHONES (over Wi-Fi)
+================================================================================
+
+Any tablet, phone, or second computer on the same Wi-Fi network can control
+the mixer. Nothing needs to be installed on the tablet — just a browser.
+
+
+OPTION A — SCAN THE QR CODE (easiest)
+---------------------------------------
+  1. On the PC, find the second browser tab that opened automatically.
+     It shows a large QR code with the server address underneath.
+  2. On your tablet or phone, open the camera app and point it at the QR code.
+  3. A banner or notification will appear — tap it to open the mixer interface
+     in the tablet's browser.
+  4. The mixer controls will appear. You can now control the mixer from
+     your tablet while the server PC stays running in the background.
+
+
+OPTION B — TYPE THE ADDRESS MANUALLY
+--------------------------------------
+  1. Look at the QR code page on the PC. Underneath the QR code you will see
+     an address like:   http://192.168.1.25:5000
+  2. On the tablet, open any browser (Safari, Chrome, Edge, etc.).
+  3. Tap the address bar and type that address exactly, then tap Go.
+  4. The mixer interface will load.
+
+
+MULTIPLE DEVICES AT ONCE
+--------------------------
+You can have as many tablets/phones connected as you like. All of them show
+the same mixer state in real time. If one device changes a fader, all other
+devices update immediately.
+
+
+================================================================================
+PART 4 — ADDING THE APP TO YOUR HOME SCREEN (makes it feel like a real app)
+================================================================================
+
+Adding the app to the home screen creates an icon that opens the mixer
+interface full-screen, without browser bars — just like a native app.
+
+
+iPAD / iPHONE (Safari)
+------------------------
+  1. Open Safari on the iPad/iPhone and navigate to the mixer address
+     (scan the QR code or type it manually as described above).
+  2. Wait for the mixer interface to fully load.
+  3. Tap the Share button — it looks like a box with an arrow pointing up.
+     On iPad it is usually at the top of the screen; on iPhone it is at
+     the bottom.
+  4. Scroll down in the Share menu and tap "Add to Home Screen".
+  5. A name field appears — you can leave it as "M-864D Mixer Controller"
+     or type a shorter name like "Mixer".
+  6. Tap "Add" in the top right corner.
+  7. The mixer icon now appears on your iPad/iPhone home screen.
+     Tap it to open the full-screen mixer interface anytime.
+
+  NOTE: The server PC must be running and on the same network for the icon
+  to work. If the server is off, the app will show a connection error.
+
+
+ANDROID TABLET / PHONE (Chrome)
+---------------------------------
+  1. Open Chrome and navigate to the mixer address.
+  2. Tap the three-dot menu button (top right corner of Chrome).
+  3. Tap "Add to Home screen" or "Install app".
+  4. Tap "Add" when prompted.
+  5. The mixer icon appears on your home screen.
+
+  On some Android devices this option is called "Add to Home screen" and
+  on others it appears as "Install". Both do the same thing.
+
+
+WINDOWS / DESKTOP (Chrome or Edge)
+------------------------------------
+  1. Open Chrome or Edge and navigate to the mixer address.
+  2. Look for an install icon in the address bar (a screen with a + symbol),
+     or click the three-dot menu and choose "Install M-864D Mixer Controller".
+  3. Click Install. The app opens in its own window without browser bars.
+  4. A shortcut is added to your desktop and Start menu.
+
+
+================================================================================
+PART 5 — USING THE MIXER INTERFACE
+================================================================================
+
+THE CHANNELS TAB (default view)
+---------------------------------
+  The main fader panel shows all inputs and outputs grouped by type:
+
+    MONO IN 1-8   — the eight mono input channels
+    ST IN 1-2     — the two stereo input channels
+    MONO OUT 1-4  — the four mono output buses
+    REC OUT 1-2   — the two record output channels
+
+  Each channel strip has:
+    - A coloured label at the top showing the channel name
+    - A vertical FADER — drag up to increase level, drag down to decrease
+    - A dB READOUT below the fader showing the current level in decibels
+    - An ON/MUTE BUTTON at the bottom — green means on, red means muted
+
+  Scroll left and right to see all channels if they do not all fit on screen.
+
+
+THE MATRIX TAB
+---------------
+  Shows a routing grid: which input channels are sent to which output buses.
+
+    - Each row is a source (input channel)
+    - Each column is a destination (output bus OUT 1-4)
+    - Tap a cell to toggle routing on (lit) or off (dark)
+    - The number in each cell is the crosspoint gain (-18 to +18 dB)
+      Tap the number to edit it directly
+
+  Below the main grid is the Output Matrix, which routes the output buses
+  to the Rec Out channels.
+
+
+THE PRESETS TAB
+----------------
+  The mixer stores up to 16 presets (slots 0-15). Each preset saves the
+  complete state of all faders, routing, and gain settings.
+
+    LOAD — recalls that preset from the mixer immediately
+    STORE — saves the current mixer state into that preset slot
+
+  The currently active preset is highlighted.
+
+
+THE SYNC BUTTON
+----------------
+  The SYNC button (refresh icon, top right, only visible when connected)
+  asks the mixer to report back all current fader positions and routing.
+
+  Use Sync to refresh the screen if:
+    - You just connected and want to confirm the displayed levels are current
+    - You loaded a preset using the Presets tab and want to verify it applied
+    - Something looks out of date
+
+  Note: Sync reads the mixer's remote-controlled state. If you have moved
+  physical knobs on the hardware unit, Sync will not show those positions —
+  in Remote mode, the app is the controller and physical knobs are bypassed.
+
+
+VIEW ONLY MODE
+---------------
+  The CONTROL / VIEW ONLY button in the top right switches between two modes:
+
+    CONTROL   — the app is connected and sending commands to the mixer.
+                All faders and buttons respond to your touches.
+
+    VIEW ONLY — the app disconnects from the mixer (no traffic is sent).
+                The screen shows the last known state, frozen.
+                Use this if you want to hand a tablet to someone without
+                letting them accidentally change anything.
+
+  Tap the button again to switch back. Reconnection is automatic.
+
+
+SETTINGS (gear icon)
+---------------------
+  Tap the gear icon to change the mixer's IP address and port.
+  This is only needed if your mixer uses a non-default IP address.
+  The default is 192.168.14.1, port 3000.
+  Settings are saved automatically for the next time you start the app.
+
+
+DEMO MODE
+----------
+  If no mixer is connected, a "Try Demo Mode" button appears on the connect
+  screen. Demo mode lets you explore all the controls without a real mixer.
+  Fader movements and button presses respond visually but nothing is sent
+  to any hardware.
+
+
+================================================================================
+PART 6 — TROUBLESHOOTING
+================================================================================
+
+  "DISCONNECTED" shown in the header
+    - Check the mixer is powered on
+    - Check the Ethernet cable is plugged into the mixer and the router
+    - Make sure the front panel switch is set to REMOTE
+    - Open Settings (gear icon) and verify the IP address
+
+  Tablet cannot reach the mixer interface
+    - Make sure the tablet is on the SAME Wi-Fi network as the PC
+    - Check the PC's firewall is not blocking port 5000
+      (Windows may ask when you first run start.bat — click Allow)
+    - Try typing the address manually instead of scanning the QR code
+
+  The QR code tab did not open automatically
+    - Open a browser on the PC and go to:  http://localhost:5000/connect
+
+  Controls are not responding
+    - Check that VIEW ONLY mode is not active (header should say CONTROL)
+    - Check the connection status — must show CONNECTED
+
+  The server terminal window closed
+    - Double-click start.bat again to restart it
+    - All tablets will reconnect automatically within a few seconds
+
+  Faders jumped to wrong positions after connecting
+    - The app reads the mixer's last remote-commanded state on connect
+    - Press SYNC to refresh, or load a preset to restore a known state
+
+
+================================================================================
+PART 7 — QUICK REFERENCE
+================================================================================
+
+  Default mixer IP:     192.168.14.1
+  Default mixer port:   3000
+  App port:             5000
+  Start the server:     Double-click start.bat (Windows) or bash start.sh
+  Mixer interface:      http://[PC-IP-address]:5000
+  QR code page:         http://[PC-IP-address]:5000/connect
+  Local access (PC):    http://localhost:5000
+
+
+================================================================================
+  END OF USER GUIDE
+================================================================================
