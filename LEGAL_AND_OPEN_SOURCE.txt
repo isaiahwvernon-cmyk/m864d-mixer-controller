@@ -1,0 +1,86 @@
+================================================================================
+  M-864D MIXER CONTROLLER — OPEN SOURCE NOTICE & LEGAL INFORMATION
+================================================================================
+
+OPEN SOURCE
+-----------
+This software is free and open source. You are free to use, copy, modify, and
+distribute it for any personal or non-commercial purpose. No licence fee is
+required and no payment is expected.
+
+This software is NOT for sale. It is provided freely to anyone who finds it
+useful.
+
+
+NO WARRANTY
+-----------
+This software is provided "as is", without warranty of any kind, express or
+implied. The authors make no guarantees regarding reliability, fitness for a
+particular purpose, or suitability for any specific use case. Use it at your
+own risk.
+
+The authors accept no liability for any damage, data loss, equipment
+malfunction, or other issues arising from the use of this software.
+
+
+PROTOCOL INFORMATION & ATTRIBUTION
+------------------------------------
+The TCP/IP communication protocol implemented in this software is based on
+publicly available documentation provided by TOA Corporation.
+
+The full protocol specification for the M-864D Digital Stereo Mixer can be
+found in the official product manual, available on the TOA Canada website:
+
+  https://www.toacanada.com
+
+All protocol commands, packet formats, byte values, and behavioural details
+used in this software were sourced from that publicly available documentation.
+No proprietary or confidential information was used.
+
+TOA Corporation and TOA Canada are the owners of the M-864D product and its
+associated documentation. This project is not affiliated with, endorsed by,
+or approved by TOA Corporation or any of its subsidiaries.
+
+
+THIRD-PARTY SOFTWARE
+---------------------
+This application is built using open-source software components including but
+not limited to:
+
+  - Node.js          (MIT Licence)        https://nodejs.org
+  - React            (MIT Licence)        https://react.dev
+  - Express          (MIT Licence)        https://expressjs.com
+  - Vite             (MIT Licence)        https://vitejs.dev
+  - TanStack Query   (MIT Licence)        https://tanstack.com/query
+  - Tailwind CSS     (MIT Licence)        https://tailwindcss.com
+  - shadcn/ui        (MIT Licence)        https://ui.shadcn.com
+  - ws               (MIT Licence)        https://github.com/websockets/ws
+  - wouter           (ISC Licence)        https://github.com/molefrog/wouter
+  - qrcode.react     (ISC Licence)        https://github.com/zpao/qrcode.react
+  - Zod              (MIT Licence)        https://zod.dev
+  - TypeScript       (Apache 2.0)         https://typescriptlang.org
+  - Lucide Icons     (ISC Licence)        https://lucide.dev
+
+Each component is subject to its own licence terms. All licences permit free
+use in open-source and non-commercial projects.
+
+
+INTENDED USE
+------------
+This software is intended for use by audio engineers, venue operators, and
+installers who own or operate a TOA M-864D Digital Stereo Mixer and wish to
+control it remotely over a local network using a tablet or web browser.
+
+It is not intended for use in safety-critical environments, public
+broadcasting, or any application where a malfunction could cause harm.
+
+
+CONTRIBUTIONS
+-------------
+If you improve this software, you are encouraged (but not required) to share
+your changes so others can benefit.
+
+
+================================================================================
+  END OF LEGAL AND OPEN SOURCE NOTICE
+================================================================================
