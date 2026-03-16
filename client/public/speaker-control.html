@@ -1,0 +1,989 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+  <title>Speaker Control | TOA IP-A1</title>
+  <meta name="description" content="Simple web control interface for TOA IP-A1 classroom speakers." />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #f0f4ff;
+      --bg2: #e8eeff;
+      --card: #ffffff;
+      --card-border: #e2e8f0;
+      --text: #1e293b;
+      --text-secondary: #64748b;
+      --text-muted: #94a3b8;
+      --primary: #3b82f6;
+      --primary-dark: #2563eb;
+      --primary-glow: rgba(59, 130, 246, 0.25);
+      --danger: #ef4444;
+      --danger-glow: rgba(239, 68, 68, 0.25);
+      --success: #22c55e;
+      --success-glow: rgba(34, 197, 94, 0.4);
+      --input-bg: #ffffff;
+      --input-border: #e2e8f0;
+      --input-focus: #3b82f6;
+      --slider-track: #e2e8f0;
+      --slider-fill: linear-gradient(90deg, #3b82f6, #6366f1);
+      --btn-bg: #ffffff;
+      --btn-border: #e2e8f0;
+      --btn-hover: #f8fafc;
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
+      --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+      --shadow-lg: 0 8px 30px rgba(0,0,0,0.12);
+      --shadow-xl: 0 16px 50px rgba(0,0,0,0.14);
+      --radius: 16px;
+      --radius-sm: 12px;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: linear-gradient(135deg, var(--bg) 0%, var(--bg2) 50%, #f0f0ff 100%);
+      color: var(--text);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .page { min-height: 100vh; display: flex; flex-direction: column; }
+
+    /* Setup Screen */
+    .setup-page {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .setup-card {
+      width: 100%;
+      max-width: 420px;
+      background: var(--card);
+      border-radius: 24px;
+      padding: 40px 32px;
+      box-shadow: var(--shadow-xl);
+      border: 1px solid var(--card-border);
+    }
+
+    .setup-icon {
+      width: 64px;
+      height: 64px;
+      border-radius: 20px;
+      background: linear-gradient(135deg, #3b82f6, #6366f1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 20px;
+      box-shadow: 0 8px 24px var(--primary-glow);
+    }
+
+    .setup-icon svg { width: 32px; height: 32px; color: white; }
+
+    .setup-title {
+      text-align: center;
+      font-size: 24px;
+      font-weight: 700;
+      margin-bottom: 6px;
+      color: var(--text);
+    }
+
+    .setup-subtitle {
+      text-align: center;
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-bottom: 32px;
+      line-height: 1.5;
+    }
+
+    .form-group { margin-bottom: 20px; }
+
+    .form-label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+      letter-spacing: 0.01em;
+    }
+
+    .form-input {
+      width: 100%;
+      padding: 14px 16px;
+      border-radius: var(--radius-sm);
+      border: 1.5px solid var(--input-border);
+      background: var(--input-bg);
+      font-size: 15px;
+      color: var(--text);
+      outline: none;
+      transition: all 0.2s;
+      font-family: inherit;
+    }
+
+    .form-input:focus {
+      border-color: var(--input-focus);
+      box-shadow: 0 0 0 3px var(--primary-glow);
+    }
+
+    .form-input::placeholder { color: var(--text-muted); }
+
+    .btn-primary {
+      width: 100%;
+      padding: 14px;
+      border-radius: var(--radius-sm);
+      background: linear-gradient(135deg, #3b82f6, #6366f1);
+      color: white;
+      font-size: 15px;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.2s;
+      box-shadow: 0 4px 16px var(--primary-glow);
+      margin-top: 28px;
+      font-family: inherit;
+    }
+
+    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 24px var(--primary-glow); }
+    .btn-primary:active { transform: translateY(0); }
+    .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+    .btn-primary svg { width: 18px; height: 18px; }
+
+    /* Control Panel */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+    }
+
+    .header-left { display: flex; align-items: center; gap: 10px; }
+
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .status-dot.online {
+      background: var(--success);
+      box-shadow: 0 0 8px var(--success-glow);
+    }
+
+    .status-dot.offline {
+      background: var(--danger);
+      box-shadow: 0 0 8px var(--danger-glow);
+    }
+
+    .header-ip {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-secondary);
+    }
+
+    .header-model {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .btn-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: var(--radius-sm);
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-muted);
+      transition: all 0.2s;
+    }
+
+    .btn-icon:hover { background: rgba(0,0,0,0.04); color: var(--text-secondary); }
+    .btn-icon svg { width: 20px; height: 20px; }
+
+    /* Settings dropdown */
+    .settings-panel {
+      margin: 0 20px 12px;
+      padding: 16px;
+      background: var(--card);
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--card-border);
+      box-shadow: var(--shadow-sm);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      animation: slideDown 0.2s ease-out;
+    }
+
+    @keyframes slideDown {
+      from { opacity: 0; transform: translateY(-8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .settings-info-label { font-size: 13px; font-weight: 600; color: var(--text); }
+    .settings-info-detail { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+    .btn-disconnect {
+      padding: 8px 14px;
+      border-radius: 10px;
+      background: var(--danger);
+      color: white;
+      font-size: 13px;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+      font-family: inherit;
+    }
+
+    .btn-disconnect:hover { background: #dc2626; }
+    .btn-disconnect svg { width: 14px; height: 14px; }
+
+    /* Main control area */
+    .control-main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 0 20px 24px;
+      gap: 28px;
+      margin-top: -16px;
+    }
+
+    .control-section { width: 100%; max-width: 380px; }
+
+    .page-title {
+      font-size: 17px;
+      font-weight: 600;
+      color: var(--text);
+      text-align: center;
+      margin-bottom: 24px;
+    }
+
+    /* Volume knob */
+    .knob-container { display: flex; justify-content: center; margin-bottom: 8px; }
+
+    .knob-wrap { position: relative; display: inline-flex; align-items: center; justify-content: center; }
+
+    .knob-svg { transform: rotate(-90deg); }
+
+    .knob-track {
+      fill: none;
+      stroke: var(--slider-track);
+      stroke-width: 10;
+    }
+
+    .knob-fill {
+      fill: none;
+      stroke: url(#knobGrad);
+      stroke-width: 10;
+      stroke-linecap: round;
+      transition: stroke-dashoffset 0.3s ease-out;
+    }
+
+    .knob-text {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .knob-percent {
+      font-size: 40px;
+      font-weight: 700;
+      color: var(--text);
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .knob-raw {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    /* Slider row */
+    .slider-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .btn-round {
+      flex-shrink: 0;
+      width: 44px;
+      height: 44px;
+      border-radius: var(--radius-sm);
+      background: var(--btn-bg);
+      border: 1px solid var(--btn-border);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-secondary);
+      transition: all 0.15s;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .btn-round:hover { background: var(--btn-hover); }
+    .btn-round:active { transform: scale(0.95); }
+    .btn-round svg { width: 20px; height: 20px; }
+
+    .slider-wrap { flex: 1; position: relative; height: 44px; display: flex; align-items: center; }
+
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 8px;
+      border-radius: 4px;
+      background: var(--slider-track);
+      outline: none;
+      cursor: pointer;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #3b82f6, #6366f1);
+      box-shadow: 0 2px 8px var(--primary-glow);
+      cursor: pointer;
+      transition: transform 0.15s;
+    }
+
+    input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.15); }
+
+    input[type="range"]::-moz-range-thumb {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #3b82f6, #6366f1);
+      box-shadow: 0 2px 8px var(--primary-glow);
+      border: none;
+      cursor: pointer;
+    }
+
+    .slider-labels {
+      display: flex;
+      justify-content: space-between;
+      padding: 6px 56px 0;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    /* Mute button */
+    .btn-mute {
+      width: 100%;
+      height: 56px;
+      border-radius: 18px;
+      font-size: 15px;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      transition: all 0.2s;
+      font-family: inherit;
+    }
+
+    .btn-mute.unmuted {
+      background: var(--btn-bg);
+      color: var(--text-secondary);
+      border: 1px solid var(--btn-border);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .btn-mute.unmuted:hover { background: var(--btn-hover); }
+
+    .btn-mute.muted {
+      background: var(--danger);
+      color: white;
+      box-shadow: 0 4px 16px var(--danger-glow);
+    }
+
+    .btn-mute.muted:hover { background: #dc2626; }
+    .btn-mute:active { transform: scale(0.98); }
+    .btn-mute svg { width: 20px; height: 20px; }
+
+    /* Presets */
+    .presets-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+
+    .btn-preset {
+      height: 64px;
+      border-radius: 18px;
+      font-size: 13px;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.2s;
+      font-family: inherit;
+    }
+
+    .btn-preset.inactive {
+      background: var(--btn-bg);
+      color: var(--text-secondary);
+      border: 1px solid var(--btn-border);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .btn-preset.inactive:hover { background: var(--btn-hover); }
+
+    .btn-preset.active {
+      background: linear-gradient(135deg, #3b82f6, #6366f1);
+      color: white;
+      box-shadow: 0 4px 16px var(--primary-glow);
+    }
+
+    .btn-preset:active { transform: scale(0.95); }
+    .btn-preset svg { width: 16px; height: 16px; }
+
+    .footer {
+      text-align: center;
+      padding: 12px 20px 16px;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    /* Loading */
+    .loading-page {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .loading-icon {
+      width: 64px;
+      height: 64px;
+      border-radius: 20px;
+      background: linear-gradient(135deg, #3b82f6, #6366f1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 16px;
+      box-shadow: 0 8px 24px var(--primary-glow);
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.8; transform: scale(0.96); }
+    }
+
+    .loading-icon svg { width: 32px; height: 32px; color: white; }
+    .loading-text { font-size: 15px; font-weight: 500; color: var(--text-secondary); }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      padding: 12px 20px;
+      border-radius: var(--radius-sm);
+      font-size: 14px;
+      font-weight: 500;
+      box-shadow: var(--shadow-lg);
+      z-index: 1000;
+      opacity: 0;
+      transition: all 0.3s ease-out;
+      white-space: nowrap;
+      max-width: 90vw;
+      text-align: center;
+    }
+
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    .toast.success { background: #065f46; color: white; }
+    .toast.error { background: var(--danger); color: white; }
+    .toast.info { background: var(--text); color: white; }
+
+    /* Offline banner */
+    .offline-banner {
+      margin: 0 20px 8px;
+      padding: 10px 16px;
+      border-radius: var(--radius-sm);
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: #991b1b;
+      font-weight: 500;
+    }
+
+    .offline-banner svg { width: 16px; height: 16px; flex-shrink: 0; }
+  </style>
+</head>
+<body>
+
+<!-- SVG Icons (hidden) -->
+<svg style="display:none">
+  <defs>
+    <linearGradient id="knobGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#3b82f6" />
+      <stop offset="100%" stop-color="#6366f1" />
+    </linearGradient>
+  </defs>
+</svg>
+
+<div id="app"></div>
+<div id="toast" class="toast"></div>
+
+<script>
+(function() {
+  const PRESETS = [
+    { label: "Low", value: 15 },
+    { label: "Normal", value: 31 },
+    { label: "Loud", value: 48 }
+  ];
+
+  const ICONS = {
+    speaker: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="1"/></svg>',
+    wifi: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h.01"/><path d="M2 8.82a15 15 0 0 1 20 0"/><path d="M5 12.859a10 10 0 0 1 14 0"/><path d="M8.5 16.429a5 5 0 0 1 7 0"/></svg>',
+    wifiOff: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h.01"/><path d="M8.5 16.429a5 5 0 0 1 7 0"/><path d="M2 2l20 20"/></svg>',
+    settings: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>',
+    close: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>',
+    minus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/></svg>',
+    plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>',
+    volumeX: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4.702a.705.705 0 0 0-1.203-.498L6.413 7.587A1.4 1.4 0 0 1 5.416 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.416a1.4 1.4 0 0 1 .997.413l3.383 3.384A.705.705 0 0 0 11 19.298z"/><line x1="22" x2="16" y1="9" y2="15"/><line x1="16" x2="22" y1="9" y2="15"/></svg>',
+    volume1: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4.702a.705.705 0 0 0-1.203-.498L6.413 7.587A1.4 1.4 0 0 1 5.416 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.416a1.4 1.4 0 0 1 .997.413l3.383 3.384A.705.705 0 0 0 11 19.298z"/><path d="M16 9a5 5 0 0 1 0 6"/></svg>',
+    volume2: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4.702a.705.705 0 0 0-1.203-.498L6.413 7.587A1.4 1.4 0 0 1 5.416 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.416a1.4 1.4 0 0 1 .997.413l3.383 3.384A.705.705 0 0 0 11 19.298z"/><path d="M16 9a5 5 0 0 1 0 6"/><path d="M19.364 18.364a9 9 0 0 0 0-12.728"/></svg>',
+    alert: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>'
+  };
+
+  let state = {
+    screen: "setup",
+    connection: null,
+    volume: 31,
+    maxVolume: 61,
+    minVolume: 0,
+    muteState: "unmute",
+    connected: false,
+    loading: false,
+    showSettings: false,
+    modelName: "",
+    terminalName: "",
+    sliderValue: 31,
+    wasConnected: true
+  };
+
+  let pollInterval = null;
+  let debounceTimer = null;
+  let toastTimer = null;
+
+  function loadSaved() {
+    try {
+      const saved = localStorage.getItem("toa_speaker_connection");
+      if (saved) {
+        state.connection = JSON.parse(saved);
+        state.screen = "loading";
+      }
+    } catch(e) {}
+  }
+
+  function saveConnection(conn) {
+    localStorage.setItem("toa_speaker_connection", JSON.stringify(conn));
+  }
+
+  function clearConnection() {
+    localStorage.removeItem("toa_speaker_connection");
+  }
+
+  function showToast(message, type) {
+    const el = document.getElementById("toast");
+    el.textContent = message;
+    el.className = "toast " + type;
+    requestAnimationFrame(() => { el.classList.add("show"); });
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { el.classList.remove("show"); }, 3000);
+  }
+
+  function speakerUrl(path) {
+    const c = state.connection;
+    return "http://" + c.ipAddress + "/api/v2/" + path;
+  }
+
+  async function speakerFetch(path) {
+    const c = state.connection;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+    try {
+      const res = await fetch(speakerUrl(path), {
+        method: "GET",
+        signal: controller.signal,
+        credentials: "include"
+      });
+      clearTimeout(timeout);
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      return await res.json();
+    } catch(e) {
+      clearTimeout(timeout);
+      throw e;
+    }
+  }
+
+  async function fetchStatus() {
+    try {
+      const [volRes, muteRes] = await Promise.allSettled([
+        speakerFetch("volume/get_master"),
+        speakerFetch("volume/get_master_mute")
+      ]);
+
+      if (volRes.status === "fulfilled" && volRes.value.result) {
+        const r = volRes.value.response;
+        state.volume = r.volume;
+        state.maxVolume = r.max || 61;
+        state.minVolume = r.min || 0;
+        state.sliderValue = r.volume;
+        state.connected = true;
+      }
+
+      if (muteRes.status === "fulfilled" && muteRes.value.result) {
+        state.muteState = muteRes.value.response.mute_state;
+      }
+
+      if (volRes.status === "rejected" && muteRes.status === "rejected") {
+        state.connected = false;
+        if (state.wasConnected) {
+          state.wasConnected = false;
+          showToast("Cannot reach speaker — check IP and network", "error");
+        }
+      } else {
+        if (!state.wasConnected) {
+          state.wasConnected = true;
+          showToast("Speaker connection restored", "success");
+        }
+        state.connected = true;
+      }
+    } catch(e) {
+      state.connected = false;
+      if (state.wasConnected) {
+        state.wasConnected = false;
+        showToast("Cannot reach speaker", "error");
+      }
+    }
+
+    if (state.screen === "loading") state.screen = "control";
+    render();
+  }
+
+  async function setVolume(vol) {
+    vol = Math.max(state.minVolume, Math.min(state.maxVolume, Math.round(vol)));
+    state.sliderValue = vol;
+    render();
+    try {
+      const res = await speakerFetch("volume/set_master?volume=" + vol);
+      if (res.result) {
+        state.volume = res.response.volume;
+        state.sliderValue = res.response.volume;
+        state.connected = true;
+      }
+    } catch(e) {
+      showToast("Failed to set volume", "error");
+    }
+    render();
+  }
+
+  async function incVolume() {
+    try {
+      const res = await speakerFetch("volume/inc_master");
+      if (res.result) {
+        state.volume = res.response.volume;
+        state.sliderValue = res.response.volume;
+        state.connected = true;
+        render();
+      }
+    } catch(e) {
+      showToast("Failed to change volume", "error");
+    }
+  }
+
+  async function decVolume() {
+    try {
+      const res = await speakerFetch("volume/dec_master");
+      if (res.result) {
+        state.volume = res.response.volume;
+        state.sliderValue = res.response.volume;
+        state.connected = true;
+        render();
+      }
+    } catch(e) {
+      showToast("Failed to change volume", "error");
+    }
+  }
+
+  async function toggleMute() {
+    const newState = state.muteState === "mute" ? "unmute" : "mute";
+    try {
+      const res = await speakerFetch("volume/set_master_mute?mute_state=" + newState);
+      if (res.result) {
+        state.muteState = res.response.mute_state;
+        state.connected = true;
+        showToast(state.muteState === "mute" ? "Speaker muted" : "Speaker unmuted", "info");
+        render();
+      }
+    } catch(e) {
+      showToast("Failed to toggle mute", "error");
+    }
+  }
+
+  function onSliderInput(e) {
+    state.sliderValue = parseInt(e.target.value, 10);
+    render();
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => setVolume(state.sliderValue), 300);
+  }
+
+  function connect(ip, user, pass) {
+    state.connection = { ipAddress: ip, username: user, password: pass };
+    saveConnection(state.connection);
+    state.screen = "loading";
+    state.wasConnected = true;
+    render();
+    fetchStatus();
+    startPolling();
+  }
+
+  function disconnect() {
+    clearConnection();
+    stopPolling();
+    state.connection = null;
+    state.screen = "setup";
+    state.showSettings = false;
+    state.connected = false;
+    render();
+  }
+
+  function startPolling() {
+    stopPolling();
+    pollInterval = setInterval(fetchStatus, 10000);
+  }
+
+  function stopPolling() {
+    if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
+  }
+
+  function renderSetup() {
+    return `
+      <div class="setup-page">
+        <div class="setup-card">
+          <div class="setup-icon">${ICONS.speaker}</div>
+          <h1 class="setup-title">Speaker Setup</h1>
+          <p class="setup-subtitle">Enter the connection details for your classroom speaker</p>
+          <form id="setupForm">
+            <div class="form-group">
+              <label class="form-label">Speaker IP Address</label>
+              <input class="form-input" type="text" id="inputIp" placeholder="192.168.1.100" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Username</label>
+              <input class="form-input" type="text" id="inputUser" placeholder="admin" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Password</label>
+              <input class="form-input" type="password" id="inputPass" placeholder="••••••••" required />
+            </div>
+            <button class="btn-primary" type="submit">
+              ${ICONS.wifi} Connect to Speaker
+            </button>
+          </form>
+        </div>
+      </div>`;
+  }
+
+  function renderLoading() {
+    return `
+      <div class="loading-page">
+        <div class="loading-icon">${ICONS.speaker}</div>
+        <p class="loading-text">Connecting to speaker...</p>
+      </div>`;
+  }
+
+  function renderControl() {
+    const pct = state.maxVolume > 0 ? Math.round((state.sliderValue / state.maxVolume) * 100) : 0;
+    const circumference = 2 * Math.PI * 54;
+    const offset = circumference - (pct / 100) * circumference;
+    const isMuted = state.muteState === "mute";
+
+    const isPreset = (val) => state.sliderValue >= val - 2 && state.sliderValue <= val + 2;
+    const presetIcons = [ICONS.volume1, ICONS.volume2, ICONS.speaker];
+
+    let settingsHtml = "";
+    if (state.showSettings) {
+      settingsHtml = `
+        <div class="settings-panel">
+          <div>
+            <div class="settings-info-label">Connected Speaker</div>
+            <div class="settings-info-detail">${state.connection.ipAddress} · ${state.modelName || "TOA IP-A1"}</div>
+          </div>
+          <button class="btn-disconnect" id="btnDisconnect">
+            ${ICONS.wifiOff} Disconnect
+          </button>
+        </div>`;
+    }
+
+    let offlineBanner = "";
+    if (!state.connected) {
+      offlineBanner = `
+        <div class="offline-banner">
+          ${ICONS.alert}
+          Speaker unreachable — check network connection
+        </div>`;
+    }
+
+    return `
+      <div class="page">
+        <header class="header">
+          <div class="header-left">
+            <div class="status-dot ${state.connected ? 'online' : 'offline'}"></div>
+            <span class="header-ip">${state.connection.ipAddress}</span>
+            ${state.terminalName ? '<span class="header-model">· ' + state.terminalName + '</span>' : ''}
+          </div>
+          <button class="btn-icon" id="btnSettings">
+            ${state.showSettings ? ICONS.close : ICONS.settings}
+          </button>
+        </header>
+
+        ${settingsHtml}
+        ${offlineBanner}
+
+        <main class="control-main">
+          <div class="control-section">
+            <h1 class="page-title">Classroom Speaker</h1>
+
+            <div class="knob-container">
+              <div class="knob-wrap">
+                <svg class="knob-svg" width="160" height="160">
+                  <circle class="knob-track" cx="80" cy="80" r="54" />
+                  <circle class="knob-fill" cx="80" cy="80" r="54"
+                    stroke-dasharray="${circumference}"
+                    stroke-dashoffset="${offset}" />
+                </svg>
+                <div class="knob-text">
+                  <span class="knob-percent">${pct}%</span>
+                  <span class="knob-raw">${state.sliderValue} / ${state.maxVolume}</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="slider-row">
+              <button class="btn-round" id="btnDec">${ICONS.minus}</button>
+              <div class="slider-wrap">
+                <input type="range" id="volumeSlider" min="${state.minVolume}" max="${state.maxVolume}" value="${state.sliderValue}" />
+              </div>
+              <button class="btn-round" id="btnInc">${ICONS.plus}</button>
+            </div>
+            <div class="slider-labels"><span>Mute</span><span>Max</span></div>
+
+            <div style="margin-top:24px">
+              <button class="btn-mute ${isMuted ? 'muted' : 'unmuted'}" id="btnMute">
+                ${ICONS.volumeX}
+                ${isMuted ? 'Unmute Speaker' : 'Mute Speaker'}
+              </button>
+            </div>
+
+            <div class="presets-grid" style="margin-top:24px">
+              ${PRESETS.map((p, i) => `
+                <button class="btn-preset ${isPreset(p.value) ? 'active' : 'inactive'}" data-preset="${p.value}">
+                  ${presetIcons[i]}
+                  ${p.label}
+                </button>
+              `).join('')}
+            </div>
+          </div>
+        </main>
+
+        <footer class="footer">TOA IP-A1 Speaker Control</footer>
+      </div>`;
+  }
+
+  function render() {
+    const app = document.getElementById("app");
+    if (state.screen === "setup") app.innerHTML = renderSetup();
+    else if (state.screen === "loading") app.innerHTML = renderLoading();
+    else app.innerHTML = renderControl();
+    bindEvents();
+  }
+
+  function bindEvents() {
+    const form = document.getElementById("setupForm");
+    if (form) {
+      form.addEventListener("submit", function(e) {
+        e.preventDefault();
+        const ip = document.getElementById("inputIp").value.trim();
+        const user = document.getElementById("inputUser").value.trim();
+        const pass = document.getElementById("inputPass").value;
+        if (ip && user && pass) connect(ip, user, pass);
+      });
+    }
+
+    const slider = document.getElementById("volumeSlider");
+    if (slider) slider.addEventListener("input", onSliderInput);
+
+    const btnInc = document.getElementById("btnInc");
+    if (btnInc) btnInc.addEventListener("click", incVolume);
+
+    const btnDec = document.getElementById("btnDec");
+    if (btnDec) btnDec.addEventListener("click", decVolume);
+
+    const btnMute = document.getElementById("btnMute");
+    if (btnMute) btnMute.addEventListener("click", toggleMute);
+
+    const btnSettings = document.getElementById("btnSettings");
+    if (btnSettings) {
+      btnSettings.addEventListener("click", function() {
+        state.showSettings = !state.showSettings;
+        render();
+      });
+    }
+
+    const btnDisconnect = document.getElementById("btnDisconnect");
+    if (btnDisconnect) btnDisconnect.addEventListener("click", disconnect);
+
+    document.querySelectorAll("[data-preset]").forEach(function(btn) {
+      btn.addEventListener("click", function() {
+        setVolume(parseInt(this.getAttribute("data-preset"), 10));
+      });
+    });
+  }
+
+  loadSaved();
+  render();
+  if (state.screen === "loading") {
+    fetchStatus();
+    startPolling();
+  }
+})();
+</script>
+</body>
+</html>
