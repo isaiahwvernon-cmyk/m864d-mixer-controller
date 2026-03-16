@@ -1,0 +1,314 @@
+================================================================================
+  M-864D MIXER CONTROLLER — DEVELOPER DOCUMENTATION
+================================================================================
+
+OVERVIEW
+--------
+This is a full-stack Node.js web application that provides a real-time browser-
+based control interface for the TOA M-864D Digital Stereo Mixer over TCP/IP.
+
+Any number of tablets or browsers on the same local network connect to a single
+Node.js server running on a PC. The server maintains one persistent TCP socket
+to the mixer and relays state changes to all connected clients via WebSocket.
+
+                     TCP/IP (port 3000)
+  [M-864D Mixer] <------------------------> [Node.js Server] <---> [Browser/Tablet]
+                                                  :5000              WebSocket /ws
+                                                                     HTTP REST API
+
+
+--------------------------------------------------------------------------------
+TECH STACK
+--------------------------------------------------------------------------------
+
+  Backend (server/)
+  -----------------
+  - Runtime:       Node.js with TypeScript (tsx for dev, tsc for build)
+  - Framework:     Express — serves the REST API and the built frontend
+  - WebSocket:     ws — real-time push of mixer state to all browsers
+  - Mixer comms:   Node.js net.Socket — raw TCP connection to the M-864D
+
+  Frontend (client/)
+  ------------------
+  - Build tool:    Vite + React + TypeScript
+  - UI framework:  Tailwind CSS + shadcn/ui component library
+  - Routing:       wouter (lightweight client-side router)
+  - Data fetching: TanStack Query v5
+  - QR codes:      qrcode.react
+
+  Shared (shared/)
+  ----------------
+  - schema.ts: Drizzle-style Zod schemas + TypeScript types shared between
+    the server and client. Single source of truth for MixerState shape.
+
+
+--------------------------------------------------------------------------------
+PROJECT STRUCTURE
+--------------------------------------------------------------------------------
+
+  /
+  ├── server/
+  │   ├── index.ts        Entry point — starts Express + HTTP server
+  │   ├── routes.ts       REST API endpoints + WebSocket server
+  │   ├── mixer.ts        MixerManager class — TCP connection to M-864D
+  │   └── vite.ts         Dev-mode Vite middleware (proxies frontend in dev)
+  │
+  ├── client/
+  │   ├── index.html      App shell — favicon, viewport meta, title
+  │   └── src/
+  │       ├── App.tsx         Router — two routes: "/" (mixer UI) and "/connect"
+  │       ├── pages/
+  │       │   ├── home.tsx    Main mixer UI (faders, matrix, presets, header)
+  │       │   └── connect.tsx QR code page served at /connect
+  │       ├── hooks/
+  │       │   └── use-mixer.ts  WebSocket hook — maintains WS connection,
+  │       │                     exposes MixerState to all components
+  │       └── lib/
+  │           └── queryClient.ts  TanStack Query client + default fetcher
+  │
+  ├── shared/
+  │   └── schema.ts       MixerState type, Zod schemas, helper functions
+  │
+  ├── start.bat           Windows launcher — opens server + /connect windows
+  ├── start.sh            Linux/Mac launcher
+  └── mixer-config.json   Persisted last-used IP and port (auto-created)
+
+
+--------------------------------------------------------------------------------
+MIXER TCP PROTOCOL (TOA M-864D)
+--------------------------------------------------------------------------------
+
+The M-864D listens on TCP port 3000. All packets use this framing:
+
+  [ CMD_BYTE ][ DATA_LENGTH ][ DATA... ]
+
+  CMD_BYTE    — single byte, always >= 0x80 for valid commands
+  DATA_LENGTH — number of data bytes that follow
+  DATA        — the payload
+
+Special single-byte values:
+  0xFF — keepalive / no-op ping
+
+READ REQUESTS (sent by server → mixer):
+  0xF0 — generic "request" command
+    [0xF0, 0x03, 0x11, attr, ch]   — request fader position
+    [0xF0, 0x03, 0x12, attr, ch]   — request on/off state
+    [0xF0, 0x04, 0x14, attr, ch, bus] — request matrix input routing
+    [0xF0, 0x04, 0x15, attr, ch, bus] — request matrix input gain
+    [0xF0, 0x04, 0x16, bus, 0x03, dst] — request matrix output routing
+    [0xF0, 0x02, 0x71, 0x00]        — request current preset number
+    [0xF2, 0x02, 0x01, 0x01]        — request machine name
+    [0xF2, 0x02, 0x00, 0x02]        — request firmware version
+
+Channel attribute byte (attr):
+  0x00 = Mono In  (channels 0-7, 8 total)
+  0x01 = Stereo In (channels 0-1, 2 total)
+  0x02 = Mono Out (channels 0-3, 4 total)
+  0x03 = Rec Out  (channels 0-1, 2 total)
+
+RESPONSES (sent by mixer → server):
+  0x91 [attr, ch, position]        — fader position (0-63, where 53 = 0 dB)
+  0x92 [attr, ch, on]              — on/off state (0x01 = on, 0x00 = off)
+  0x94 [srcAttr, srcCh, bus, on]   — matrix input routing
+  0x95 [srcAttr, srcCh, bus, gain] — matrix input gain (0x00-0x46)
+  0x96 [bus, dstAttr, dstCh, on]   — matrix output routing
+  0xF1 [0x00, presetNum]           — current preset number
+  0xDF [0x01]                      — connection establishment ACK
+  0xE6 [0x00, attr, ch, level]     — level meter data (0-72 raw value)
+
+SET COMMANDS (sent by server → mixer):
+  0x91 [attr, ch, position]        — set fader position
+  0x92 [attr, ch, on]              — set on/off
+  0x94 [srcAttr, srcCh, bus, on]   — set matrix input routing
+  0x95 [srcAttr, srcCh, bus, gain] — set matrix input gain
+  0x96 [bus, 0x03, dstCh, on]      — set matrix output routing
+  0xF1 [0x00, presetNum]           — load preset
+  0xF3 [0x00, preset, y,mo,d,h,mi,s] — store preset with timestamp
+
+FADER SCALE:
+  Position 0  = -infinity (minimum)
+  Position 53 = 0 dB (unity gain — marked on scale)
+  Position 63 = +10 dB (maximum)
+  Helper: faderPositionToDb(pos) converts 0-63 to a dB string
+
+IMPORTANT PROTOCOL BEHAVIOUR:
+  - The mixer only reports remote-commanded values over TCP. Physical knob
+    movements on the hardware unit do NOT generate TCP notifications when the
+    mixer is in Remote mode. The app is the controller; physical knobs are
+    bypassed in remote mode.
+  - The mixer does NOT push unsolicited state changes. All data is request/
+    response. The server polls meters every 300ms and full state every 30s.
+
+
+--------------------------------------------------------------------------------
+SERVER ARCHITECTURE (server/mixer.ts)
+--------------------------------------------------------------------------------
+
+MixerManager extends EventEmitter. Key responsibilities:
+
+  connect(ip, port)
+    - Tears down any existing connection
+    - Opens a new net.Socket to the mixer
+    - On connect: starts keepalive timer (5s), full state poll timer (30s),
+      meter poll timer (300ms), then fires _requestAllState() after 500ms
+    - On close: auto-reconnects after 5s unless intentional disconnect
+
+  _requestAllState()
+    - Sends all read commands (faders, on/off, matrix, presets, meters)
+    - Commands are spaced 30ms apart to avoid overwhelming the mixer
+    - Called on connect, every 30 minutes, and on manual Sync
+
+  requestSync()       — public wrapper around _requestAllState()
+  setFader()          — sends 0x91 set command
+  setOnOff()          — sends 0x92 set command
+  setInputMatrix()    — sends 0x94 set command
+  setInputMatrixGain()— sends 0x95 set command
+  setOutputMatrix()   — sends 0x96 set command
+  loadPreset()        — sends 0xF1 load command
+  storePreset()       — sends 0xF3 store command with current timestamp
+
+  setRemoteMode(remote)
+    - remote=true  → reconnects TCP (Control mode)
+    - remote=false → intentionally disconnects TCP (View Only mode)
+    - This is a SOFTWARE control lock, not a hardware command to the mixer.
+      The M-864D hardware Remote/Local switch is front-panel only.
+
+  _parseBuffer()
+    - Reassembles TCP stream into discrete packets using the length-prefixed
+      framing. Handles fragmented TCP receives correctly.
+
+  _handlePacket(cmd, data)
+    - Dispatches received packets to update this.state
+    - Emits "state" event whenever any field changes
+    - The "state" event is broadcast to all WebSocket clients by routes.ts
+
+
+--------------------------------------------------------------------------------
+REST API (server/routes.ts)
+--------------------------------------------------------------------------------
+
+  GET  /api/info              — returns { lanIP, port, url } for QR code
+  GET  /api/config            — returns saved { ip, port } config
+  POST /api/config            — saves ip/port to mixer-config.json
+  GET  /api/state             — returns current MixerState snapshot
+  POST /api/connect           — connect to mixer at given { ip, port }
+  POST /api/disconnect        — disconnect from mixer
+  POST /api/remote            — { remote: bool } — toggle Control/View Only
+  POST /api/sync              — triggers full state re-read from mixer
+  POST /api/fader             — { attr, ch, position } — set fader
+  POST /api/onoff             — { attr, ch, on } — set channel on/off
+  POST /api/matrix/input      — { srcAttr, srcCh, bus, on } — matrix routing
+  POST /api/matrix/input-gain — { srcAttr, srcCh, bus, value } — gain
+  POST /api/matrix/output     — { bus, dstCh, on } — output routing
+  POST /api/preset/load       — { preset } — load preset 0-15
+  POST /api/preset/store      — { preset } — store preset 0-15
+
+  WebSocket: ws://host:5000/ws
+    - Clients receive the full MixerState as JSON on connect
+    - Clients receive { type: "state", state: MixerState } on every change
+    - One-way: server → client only. Clients send REST commands, not WS.
+
+
+--------------------------------------------------------------------------------
+FRONTEND STATE MANAGEMENT (client/src/hooks/use-mixer.ts)
+--------------------------------------------------------------------------------
+
+useMixerWs() hook:
+  - Opens a WebSocket to /ws on mount
+  - Reconnects every 3s if disconnected
+  - Returns MixerState (merged with connected/ip/port/remoteMode fields)
+  - All components read from this single hook — no prop drilling needed
+
+MixerState fields:
+  connected: boolean
+  ip: string
+  port: number
+  remoteMode: boolean | null   (null = unknown, false = view-only/disconnected)
+  monoInFader:   number[8]    — positions 0-63
+  monoInOn:      boolean[8]
+  stereoInFader: number[2]
+  stereoInOn:    boolean[2]
+  monoOutFader:  number[4]
+  monoOutOn:     boolean[4]
+  recOutFader:   number[2]
+  recOutOn:      boolean[2]
+  monoInLevel:   number[8]    — raw 0-72 meter values
+  stereoInLevel: number[4]
+  monoOutLevel:  number[4]
+  inputMatrix:   boolean[10][4]   — [srcIdx][busIdx] routing on/off
+  inputMatrixGain: number[10][4]  — [srcIdx][busIdx] gain 0x00-0x46
+  outputMatrix:  boolean[4][2]    — [busIdx][dstIdx] routing on/off
+  currentPreset: number           — 0-15
+
+
+--------------------------------------------------------------------------------
+MAIN UI (client/src/pages/home.tsx)
+--------------------------------------------------------------------------------
+
+The home page renders three tabs:
+
+  CHANNELS tab
+    - One ChannelStrip component per channel
+    - Groups: Mono In (8), Stereo In (2), Mono Out (4), Rec Out (2)
+    - Each strip: channel label → vertical fader (rotated range input) →
+      dB readout → ON/MUTE button
+    - Fader height is dynamic: fills available vertical space minus chrome
+
+  MATRIX tab
+    - 10-row × 4-column routing grid (Mono In 1-8 + Stereo In 1-2 vs OUT 1-4)
+    - Each cell: toggle button for on/off + number input for crosspoint gain
+    - Output matrix (OUT 1-4 → REC OUT 1-2) shown below
+
+  PRESETS tab
+    - 16 preset slots (0-15)
+    - LOAD button recalls the preset from the mixer
+    - STORE button saves current state to that slot (with timestamp)
+
+  Header
+    - App title + connection status badge
+    - SYNC button — triggers full state re-read (visible in Control mode only)
+    - VIEW ONLY / CONTROL toggle — software control lock
+    - Settings gear — opens IP/port configuration panel
+    - Demo mode — lets you explore the UI without a mixer connected
+
+  View Only mode
+    - Tapping View Only physically disconnects the TCP socket (no traffic)
+    - UI stays visible showing last known state (frozen)
+    - Banner shown: "Disconnected from mixer — tap Control to reconnect"
+    - Tapping Control reconnects using saved IP/port automatically
+
+  Soft-disconnect logic:
+    - isActive = wsState.connected || demoMode || softDisconnected
+    - softDisconnected = !connected && remoteMode === false && !!ip
+    - This keeps the mixer UI on screen instead of reverting to connect page
+
+
+--------------------------------------------------------------------------------
+CONFIG PERSISTENCE
+--------------------------------------------------------------------------------
+
+  mixer-config.json (project root)
+    - Written when user connects via the Settings panel
+    - Read on server startup to auto-connect without user input
+    - Default IP: 192.168.14.1 (TOA M-864D factory default), port: 3000
+    - If a saved config exists, it overrides the factory default
+
+
+--------------------------------------------------------------------------------
+START SCRIPTS
+--------------------------------------------------------------------------------
+
+  start.bat (Windows):
+    1. Checks for marker file dist/.m864d-build to detect a production build
+    2. If built: runs node dist/index.js
+    3. If not: runs npm run dev (tsx development server)
+    4. Opens localhost:5000 in the default browser (mixer UI)
+    5. Opens localhost:5000/connect in a second browser tab (QR code page)
+
+  start.sh (Linux/Mac):
+    Same logic as start.bat, adapted for bash.
+
+
+================================================================================
+  END OF DEVELOPER NOTES
+================================================================================
