@@ -1,6 +1,4 @@
-# IP-A1 Volume Controller
 
-A simple web interface for controlling IP-A1 classroom speakers.
 
 ## Quick Start (Windows)
 
@@ -16,12 +14,6 @@ A simple web interface for controlling IP-A1 classroom speakers.
 3. Open a terminal in the project folder
 4. Run: `bash start.sh`
 5. Open your browser to **http://localhost:5000**
-
-## How to Use
-
-1. On the connect page, scan the QR code with a phone or tablet to open the controller
-2. Select a room, then use the volume slider, +/- buttons, or presets (Low / Normal / Loud)
-3. Click Mute to silence the speaker
 
 ## Requirements
 
